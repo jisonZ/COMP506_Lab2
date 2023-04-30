@@ -97,6 +97,15 @@ struct NODE * children[CHILD_NUM];
 %type <val> Type
 %type <val> Write
 
+%type <val> MatchStmt
+%type <val> OpenStmt
+
+%type <val> OrTerm
+%type <val> AndTerm
+%type <val> RelExpr
+
+%type <val> Charconst
+
 %start  Grammar
 
 %%
@@ -132,7 +141,10 @@ Decls  :   Decls Decl SEMICOLON { cur = TYPE_UNK; }
 Decl   :   Type  SpecList
 ;
 
+/* ----- TODO add AST for following rules ---- */ 
+
 Type   :   INT	{ cur = TYPE_INT; }
+       |   CHAR { cur = TYPE_CHAR; }
 ;
 
 SpecList:  SpecList COMMA Spec
@@ -140,47 +152,162 @@ SpecList:  SpecList COMMA Spec
 ;
 
 Spec   :   Name
-;
+
+/* ----------------------------------------- */ 
 
 /* The Statment Grammar */
-Stmts  :   Stmts Stmt	{ 	add_sybling_node($1, $2);	/* Stmts = root Stmt = sibling*/
+Stmts  :   Stmts Stmt	{ 
+              add_sybling_node($1, $2);	/* Stmts = root Stmt = sibling*/
 							$$ = $1; }
-       |  Stmt  { 	children[0] = $1;
+       |  Stmt  { 	
+              children[0] = $1;
        				$$ = make_op_node( NODE_STATEMENTS, children, 1); }
 ;
 
-Stmt : Reference EQUALS Expr SEMICOLON {  children[0] = $1;
+/* ----- TODO add AST for following rules ---- */ 
+
+Stmt  :   MatchStmt {$$ = $1;}
+      |   OpenStmt {$$ = $1;}
+;
+
+MatchStmt: Reference EQUALS Expr SEMICOLON {  
+                      children[0] = $1;
 											children[1] = $3;
 											$$ = make_op_node( NODE_ASSIGN, children, 2);
                                           }
       | Write
-      | Name Name{
+      | Name Name {
             	printf("%s at ",$1);
             	yyerror("is not a key word.\n");
       }
+      | IF LPAREN Bool RPAREN THEN MatchStmt ELSE MatchStmt {  
+                      children[0] = $3;
+											children[1] = $6;
+                      children[2] = $8;
+											$$ = make_op_node( NODE_IF_ELSE, children, 3);
+                                          }
+      /* | LBRACKET Stmts RBRACKET {
+        $$ = $1;} */
+
+      | WHILE LPAREN Bool RPAREN LBRACKET Stmts RBRACKET {
+                      children[0] = $3;
+                      children[1] = $6;
+                      $$ = make_op_node( NODE_WHILE, children, 2);
+      }
 ;
 
-Write  : WRITE Expr SEMICOLON { children[0]=$2;
+OpenStmt: IF LPAREN Bool RPAREN THEN Stmt {  
+                      children[0] = $3;
+                      children[1] = $6;
+											$$ = make_op_node( NODE_IF, children, 2);
+                                          }
+        | IF LPAREN Bool RPAREN THEN MatchStmt ELSE OpenStmt {  
+                      children[0] = $3;
+                      children[1] = $6; 
+                      children[2] = $8;
+											$$ = make_op_node( NODE_IF_ELSE, children, 3);
+                                          }
+;
+
+Bool: NOT OrTerm {  children[0] = $2;
+											$$ = make_op_node( NODE_NOT, children, 1);
+                                          }
+    | OrTerm {$$ = $1;}
+;
+
+OrTerm: OrTerm OR AndTerm {  
+                      children[0] = $1;
+											children[1] = $3;
+                      // printf("OrTerm(%s:%d) OR AndTerm(%s:%d)\n", 
+                      // children[0]->var_name, children[0]->var_val, 
+                      // children[1]->var_name, children[1]->var_val);
+											$$ = make_op_node( NODE_OR, children, 2);
+                                          }
+      | AndTerm {$$ = $1;}
+;
+
+AndTerm: AndTerm AND RelExpr {  
+                      children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_AND, children, 2);
+                                          }
+        | RelExpr {           $$ = $1;}
+;
+
+RelExpr: RelExpr LT Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_LT, children, 2);
+                                          }
+      | RelExpr LE Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_LE, children, 2);
+                                          }
+      | RelExpr EQ Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_EQ, children, 2);
+                                          }
+      | RelExpr NE Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_NE, children, 2);
+                                          }
+      | RelExpr GE Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_GE, children, 2);
+                                          }
+      | RelExpr GT Expr {  children[0] = $1;
+											children[1] = $3;
+											$$ = make_op_node( NODE_GT, children, 2);
+                                          }
+      | Expr {$$ = $1;}
+;
+/* ----------------------------------------- */ 
+
+Write  : WRITE Expr SEMICOLON { 
+                children[0]=$2;
 								$$ = make_op_node(NODE_WRITE, children, 1); }
 ;
 
+/* ----- TODO add AST for following rules ---- */ 
 
 /* The Expression Grammar */
 Expr   : Expr PLUS Term {	children[0] = $1;
 							children[1] = $3;
 							$$ = make_op_node(NODE_PLUS, children, 2);}
+       | Expr MINUS Term {	children[0] = $1;
+							children[1] = $3;
+							$$ = make_op_node(NODE_MINUS, children, 2);}
        | Term {$$ = $1;}
 ;
 
 Term   : Factor {$$ = $1;}
+        | Term TIMES Factor {
+          children[0] = $1;
+          children[1] = $3;
+          $$ = make_op_node(NODE_TIMES, children, 2);
+        }
+        | Term DIVIDE Factor {
+          children[0] = $1;
+          children[1] = $3;
+          $$ = make_op_node(NODE_DIVIDE, children, 2);
+        }
 ;
 
 Factor : Reference { $$ = $1; }
        | Number { $$ = $1; }
+       | LPAREN Expr RPAREN {$$ = $1; }
+       | Charconst
 ;
 
-Reference :  Name { $$ = make_leaf_node(NODE_NAME, strdup($1), 0);}
+Charconst: CHARCONST {
+  $$ = make_leaf_node(TYPE_CHAR,"char", TokenString);
+}
+;
 
+/* ----------------------------------------- */ 
+
+Reference :  Name { 
+  // printf("Reference: get node name: %s\n", $1);
+  $$ = make_leaf_node(NODE_NAME, strdup($1), 0);}
 ;
 
 Name   : NAME {

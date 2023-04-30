@@ -319,6 +319,7 @@ struct symrec *getsym(char const *name)
 
 void walk(struct NODE *root)
 {
+    // printf("walk on type: %d\n", root->node_type);
     int i;
     switch (root->node_type)
     {
@@ -342,9 +343,97 @@ void walk(struct NODE *root)
             return;
         case NODE_WRITE:
             walk(root->children[0]);
-            printf("Write: %d\n", root->children[0]->var_val);
+            printf("Write: as_int:%d, as_char:%c\n", 
+            root->children[0]->var_val, root->children[0]->var_val);
+            return;
+        case NODE_IF_ELSE:
+            walk(root->children[0]);
+            if (root->children[0]->var_val) {
+                walk(root->children[1]);
+            } else {
+                walk(root->children[2]);
+            }
+            return;
+        case NODE_WHILE:
+            walk(root->children[0]);
+            while (root->children[0]->var_val) {
+                walk(root->children[1]);
+                walk(root->children[0]);
+            }
+            return;
+        case NODE_IF:
+            walk(root->children[0]);
+            if (root->children[0]->var_val == 1) {
+                walk(root->children[1]);
+            }
+            return;
+        case NODE_NOT:
+            walk(root->children[0]);
+            root->var_val = !root->children[0]->var_val;
+            return;
+        case NODE_OR:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            // printf("OR: (%d:%d), (%d:%d)\n", 
+            // root->children[0]->var_val,
+            // root->children[0]->node_type, 
+            // root->children[1]->var_val,
+            // root->children[1]->node_type);
+            root->var_val = root->children[0]->var_val || root->children[1]->var_val;
+            return;
+        case NODE_AND:
+            // printf("AND: %d, %d\n", root->children[0]->var_val, root->children[1]->var_val);
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = root->children[0]->var_val && root->children[1]->var_val;
+            return;
+        case NODE_LT:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val < root->children[1]->var_val);
+            return;
+        case NODE_LE:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val <= root->children[1]->var_val);
+            return;
+        case NODE_EQ:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val == root->children[1]->var_val);
+            return;
+        case NODE_NE:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val != root->children[1]->var_val);
+            return;
+        case NODE_GE:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val > root->children[1]->var_val);
+            return;
+        case NODE_GT:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = (root->children[0]->var_val >= root->children[1]->var_val);
+            return;
+        case NODE_MINUS:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = root->children[0]->var_val - root->children[1]->var_val;
+            return;
+        case NODE_TIMES:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = root->children[0]->var_val * root->children[1]->var_val;
+            return;
+        case NODE_DIVIDE:
+            walk(root->children[0]);
+            walk(root->children[1]);
+            root->var_val = root->children[0]->var_val / root->children[1]->var_val;
             return;
     }
+
     return;
 }
 

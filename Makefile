@@ -27,4 +27,5 @@ timestamp.o: timestamp.c demo.h
 #
 clean:	
 	rm *.o 
+	rm demo 
 

@@ -1,0 +1,17 @@
+procedure main {
+ int one, zero, temp;
+ 
+ one  = 1;
+ zero = 0;
+
+ if (zero or zero) then 
+     write one;
+ else 
+     write zero;
+
+ if (one or zero) then
+     write one;
+ else 
+     write zero;
+
+}
