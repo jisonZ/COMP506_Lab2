@@ -251,9 +251,17 @@ void add_sybling_node(struct NODE *root, struct NODE *sybling)
 
 void update_st(char *name, int type, int value){
     // TODO:check assignment type: char <- int NO, int <- char OK if char =[0-9]
-
+    
     struct symrec *current = getsym(name);
-
+    if (current->type == TYPE_CHAR && type == TYPE_INT) {
+        yyerror("Cannot assign char <- int");
+    }
+    if (current->type == TYPE_INT && type == TYPE_CHAR) {
+        if ((value-'0') < 0 || (value-'0') > 9) {
+            printf("val: %c", value);
+            yyerror("Cannot assign int <- char with char not in range[0-9]");
+        }
+    }
     if (!current){
         yyerror("Undeclared variable");
         die();
@@ -335,6 +343,9 @@ void walk(struct NODE *root)
         case NODE_PLUS:
             walk(root->children[0]);
             walk(root->children[1]);
+            if (root->children[0]->var_type == TYPE_CHAR || root->children[1]->var_type == TYPE_CHAR) {
+                yyerror("Cannot have char in arithmetic expression");
+            }
             root->var_val = root->children[0]->var_val + root->children[1]->var_val;
             return;
         case NODE_ASSIGN:
@@ -420,16 +431,25 @@ void walk(struct NODE *root)
         case NODE_MINUS:
             walk(root->children[0]);
             walk(root->children[1]);
+            if (root->children[0]->var_type == TYPE_CHAR || root->children[1]->var_type == TYPE_CHAR) {
+                yyerror("Cannot have char in arithmetic expression");
+            }
             root->var_val = root->children[0]->var_val - root->children[1]->var_val;
             return;
         case NODE_TIMES:
             walk(root->children[0]);
             walk(root->children[1]);
+            if (root->children[0]->var_type == TYPE_CHAR || root->children[1]->var_type == TYPE_CHAR) {
+                yyerror("Cannot have char in arithmetic expression");
+            }
             root->var_val = root->children[0]->var_val * root->children[1]->var_val;
             return;
         case NODE_DIVIDE:
             walk(root->children[0]);
             walk(root->children[1]);
+            if (root->children[0]->var_type == TYPE_CHAR || root->children[1]->var_type == TYPE_CHAR) {
+                yyerror("Cannot have char in arithmetic expression");
+            }
             root->var_val = root->children[0]->var_val / root->children[1]->var_val;
             return;
     }

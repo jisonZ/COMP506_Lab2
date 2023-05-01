@@ -130,6 +130,9 @@ Proc   :  PROCEDURE Name LBRACKET
           RBRACKET { $$ = $5; }
        |  PROCEDURE Name LBRACKET Decls Stmts ENDOFFILE
           { yyerror("Missing final right bracket ('}')"); }
+        | PROCEDURE Name LBRACKET
+              Decls
+          RBRACKET {yyerror("No statements");}
 ; 
 
 /* Declaration Syntax */
@@ -139,12 +142,13 @@ Decls  :   Decls Decl SEMICOLON { cur = TYPE_UNK; }
 ;
 
 Decl   :   Type  SpecList
+        /* |  error SpecList{yyerror("type error");} */
 ;
 
 /* ----- TODO add AST for following rules ---- */ 
-
 Type   :   INT	{ cur = TYPE_INT; }
        |   CHAR { cur = TYPE_CHAR; }
+       |  READ { yyerror("Read not allowed\n"); yyerrok;}
 ;
 
 SpecList:  SpecList COMMA Spec
@@ -170,11 +174,30 @@ Stmt  :   MatchStmt {$$ = $1;}
       |   OpenStmt {$$ = $1;}
 ;
 
+KeyWords: AND
+      | BY 
+      | CHAR 
+      | ELSE
+      | FOR
+      | IF 
+      | INT 
+      | NOT 
+      | OR 
+      | PROCEDURE 
+      | READ 
+      | THEN
+      | TO 
+      | WHILE
+      | WRITE 
+
 MatchStmt: Reference EQUALS Expr SEMICOLON {  
                       children[0] = $1;
 											children[1] = $3;
 											$$ = make_op_node( NODE_ASSIGN, children, 2);
                                           }
+      | KeyWords EQUALS Expr SEMICOLON {
+        yyerror("cannot assign to a keyword\n");
+      }
       | Write
       | Name Name {
             	printf("%s at ",$1);
@@ -308,6 +331,9 @@ Charconst: CHARCONST {
 Reference :  Name { 
   // printf("Reference: get node name: %s\n", $1);
   $$ = make_leaf_node(NODE_NAME, strdup($1), 0);}
+  /* | error {
+    printf("keyword error");
+  } */
 ;
 
 Name   : NAME {
@@ -317,6 +343,9 @@ Name   : NAME {
 					putsym(TokenString, cur, 0);
 				  }
               }
+    /* | error {
+      yyerror ("name error");
+    } */
 ;
 
 Number : NUMBER {$$ = make_leaf_node(TYPE_INT,"number", TokenString);}
@@ -332,6 +361,7 @@ int yywrap()
 
 void yyerror(char *s)
 {
+  /* printf("call yyerror: %d, %d\n", yylineno, ErrLine); */
   if (yylineno != ErrLine) {
     fprintf(stderr, "Line %d: %s\n",yylineno,s);
     syntax_error++;

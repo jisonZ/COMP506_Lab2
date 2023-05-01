@@ -1,10 +1,16 @@
 LogFile is unbuffered.
 
 COMP 506 DEMO Compiler
-Run on 'jade.clear.rice.edu' at Sun Apr 30 06:19:52 2023
+Run on 'jade.clear.rice.edu' at Sun Apr 30 23:56:03 2023
 Using code base R02.02
 
 File disposition:
-	opening file './test/if.demo'
+	opening file './error/basic7.demo'
 	stdout is unbuffered.
 
+Parser, line 7: syntax error, unexpected UNKNOWN, expecting CHARCONST or LPAREN or NAME or NUMBER
+	lexeme is '''.
+
+Parser fails with 1 error messages.
+Execution halts.
+Due to errors, deleting files (null) and (null)
